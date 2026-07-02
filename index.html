@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CFO Dashboard — Point 43</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --gold:#FFB800;--black:#0A0A0A;--card:#1A1A1A;--card2:#222;--border:#2a2a2a;
+      --text:#e0e0e0;--muted:#666;
+      --green:#22c55e;--green-bg:#0d2a17;
+      --yellow:#FFB800;--yellow-bg:#2a2000;
+      --red:#ef4444;--red-bg:#2a0d0d;
+    }
+    body{background:var(--black);color:var(--text);font-family:'Inter',sans-serif;min-height:100vh;line-height:1.5}
+    input,textarea,select{font-family:'Inter',sans-serif}
+
+    /* HEADER */
+    header{background:#111;border-bottom:2px solid var(--gold);padding:16px 20px;display:flex;align-items:center;justify-content:space-between}
+    header h1{font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--gold);letter-spacing:2px}
+    .user-badge{background:var(--card2);border:1px solid var(--border);padding:6px 14px;border-radius:20px;font-size:12px;color:var(--muted);display:flex;align-items:center;gap:8px}
+    .user-badge span{color:var(--gold);font-weight:700}
+    .btn-logout{background:none;border:none;color:var(--muted);font-size:11px;cursor:pointer}
+    .btn-logout:hover{color:var(--red)}
+
+    /* TABS */
+    .tabs{display:flex;overflow-x:auto;gap:0;background:#111;border-bottom:1px solid var(--border)}
+    .tab{padding:13px 18px;font-size:12px;font-weight:600;letter-spacing:.5px;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:all .2s}
+    .tab:hover{color:var(--text)}
+    .tab.active{color:var(--gold);border-bottom-color:var(--gold)}
+
+    /* PAGES */
+    .page{display:none;padding:20px;max-width:900px;margin:0 auto}
+    .page.active{display:block}
+
+    /* LOGIN */
+    #login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;flex-direction:column;padding:24px}
+    .login-box{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:36px 28px;width:100%;max-width:380px;text-align:center}
+    .login-logo{font-family:'Bebas Neue',sans-serif;font-size:32px;color:var(--gold);letter-spacing:3px;margin-bottom:4px}
+    .login-sub{font-size:12px;color:var(--muted);margin-bottom:28px;letter-spacing:1px}
+    .pin-btns{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px}
+    .pin-btn{background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:14px;font-size:13px;font-weight:700;color:var(--text);cursor:pointer;transition:all .2s;display:flex;flex-direction:column;align-items:center;gap:4px}
+    .pin-btn:hover{border-color:var(--gold);color:var(--gold)}
+    .pin-btn .emoji{font-size:22px}
+    .pin-btn .role{font-size:10px;color:var(--muted);font-weight:400}
+    .pin-input-wrap{margin-top:16px}
+    .pin-input-wrap label{font-size:12px;color:var(--muted);display:block;margin-bottom:8px}
+    .pin-input{width:100%;background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:20px;text-align:center;letter-spacing:8px;color:var(--gold);outline:none}
+    .pin-input:focus{border-color:var(--gold)}
+    .btn-enter{width:100%;margin-top:12px;background:var(--gold);color:var(--black);font-weight:700;font-size:14px;border:none;border-radius:8px;padding:13px;cursor:pointer;transition:opacity .2s}
+    .btn-enter:hover{opacity:.85}
+    .login-error{color:var(--red);font-size:12px;margin-top:10px;min-height:18px}
+
+    /* GRIDS */
+    .grid-2{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-bottom:16px}
+    .grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:16px}
+    .grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+
+    /* METRIC CARD */
+    .metric-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px}
+    .metric-card .label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
+    .metric-card .value{font-size:24px;font-weight:800;color:#fff}
+    .metric-card .sub{font-size:11px;color:var(--muted);margin-top:4px}
+    .metric-card.verde{border-color:var(--green);background:var(--green-bg)}
+    .metric-card.amarelo{border-color:var(--yellow);background:var(--yellow-bg)}
+    .metric-card.vermelho{border-color:var(--red);background:var(--red-bg)}
+
+    /* SEMAFORO */
+    .semaforo-bar{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+    .semaforo-item{flex:1;min-width:140px;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 14px;display:flex;align-items:center;gap:10px}
+    .semaforo-luz{width:14px;height:14px;border-radius:50%;flex-shrink:0}
+    .semaforo-luz.verde{background:var(--green);box-shadow:0 0 8px var(--green)}
+    .semaforo-luz.amarelo{background:var(--yellow);box-shadow:0 0 8px var(--yellow)}
+    .semaforo-luz.vermelho{background:var(--red);box-shadow:0 0 8px var(--red)}
+    .semaforo-luz.cinza{background:#444}
+    .semaforo-info .s-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+    .semaforo-info .s-val{font-size:14px;font-weight:700;color:#fff}
+
+    /* PROGRESS */
+    .progress-wrap{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:14px}
+    .progress-header{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px}
+    .progress-header .p-title{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+    .progress-header .p-val{font-size:18px;font-weight:800;color:#fff}
+    .progress-header .p-meta{font-size:11px;color:var(--muted)}
+    .bar-track{background:#2a2a2a;border-radius:99px;height:10px;overflow:hidden}
+    .bar-fill{height:100%;border-radius:99px;transition:width .6s ease;min-width:2px}
+    .bar-fill.verde{background:var(--green)}
+    .bar-fill.amarelo{background:var(--yellow)}
+    .bar-fill.vermelho{background:var(--red)}
+    .bar-labels{display:flex;justify-content:space-between;margin-top:6px;font-size:10px;color:var(--muted)}
+
+    /* TABLE */
+    .table-wrap{overflow-x:auto}
+    table{width:100%;border-collapse:collapse;font-size:13px}
+    th{background:#222;color:var(--gold);text-align:left;padding:10px 14px;font-size:10px;letter-spacing:1px;text-transform:uppercase}
+    td{padding:10px 14px;border-bottom:1px solid var(--border);color:#ccc;vertical-align:middle}
+    tr:last-child td{border-bottom:none}
+    .tag{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700}
+    .tag.verde{background:var(--green-bg);color:var(--green)}
+    .tag.amarelo{background:var(--yellow-bg);color:var(--yellow)}
+    .tag.vermelho{background:var(--red-bg);color:var(--red)}
+
+    /* SEC TITLE */
+    .sec-title{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:1.5px;color:var(--gold);margin-bottom:14px;margin-top:28px;display:flex;align-items:center;gap:8px}
+    .sec-title:first-child{margin-top:0}
+
+    /* FORM */
+    .form-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:22px;margin-bottom:14px}
+    .form-card h3{font-size:12px;color:var(--gold);text-transform:uppercase;letter-spacing:1px;margin-bottom:16px}
+    .field-group{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+    .field-group-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+    .field{display:flex;flex-direction:column;gap:6px}
+    .field label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+    .field input,.field textarea,.field select{background:#111;border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:#fff;font-size:14px;outline:none;transition:border .2s;width:100%}
+    .field input:focus,.field textarea:focus{border-color:var(--gold)}
+    .field .hint{font-size:10px;color:#444}
+    .field textarea{resize:vertical;min-height:72px}
+
+    /* TOTAL DIA */
+    .total-dia{background:var(--yellow-bg);border:1px solid var(--gold);border-radius:10px;padding:16px;text-align:center;margin:16px 0}
+    .total-dia .t-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+    .total-dia .t-val{font-size:30px;font-weight:800;color:var(--gold);margin-top:4px}
+    .total-dia .t-cota{font-size:12px;color:var(--muted);margin-top:4px}
+
+    /* BUTTONS */
+    .btn-primary{width:100%;background:var(--gold);color:var(--black);font-weight:800;font-size:14px;border:none;border-radius:10px;padding:14px;cursor:pointer;letter-spacing:.5px;transition:opacity .2s;margin-top:8px}
+    .btn-primary:hover{opacity:.85}
+    .btn-primary:disabled{opacity:.4;cursor:not-allowed}
+    .btn-secondary{width:100%;background:var(--card2);color:var(--text);font-weight:700;font-size:13px;border:1px solid var(--border);border-radius:10px;padding:13px;cursor:pointer;transition:all .2s;margin-top:8px}
+    .btn-secondary:hover{border-color:var(--gold);color:var(--gold)}
+    .save-msg{text-align:center;font-size:13px;margin-top:10px;min-height:20px}
+    .save-msg.ok{color:var(--green)}
+    .save-msg.err{color:var(--red)}
+
+    /* DATE NAV */
+    .date-nav{display:flex;align-items:center;gap:10px;margin-bottom:20px;flex-wrap:wrap}
+    .date-nav input[type=date]{background:#111;border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:#fff;font-size:13px;outline:none}
+    .date-nav input[type=date]:focus{border-color:var(--gold)}
+    .today-btn{background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:8px 14px;font-size:12px;color:var(--muted);cursor:pointer}
+    .today-btn:hover{border-color:var(--gold);color:var(--gold)}
+    .date-status{font-size:11px;padding:4px 10px;border-radius:10px}
+    .date-status.preenchido{background:var(--green-bg);color:var(--green)}
+    .date-status.vazio{background:var(--card2);color:var(--muted)}
+
+    /* ALERTA */
+    .alerta{border-radius:10px;padding:14px 16px;margin-bottom:14px;display:flex;align-items:flex-start;gap:10px;font-size:13px}
+    .alerta.verde{background:var(--green-bg);border:1px solid var(--green)}
+    .alerta.amarelo{background:var(--yellow-bg);border:1px solid var(--yellow)}
+    .alerta.vermelho{background:var(--red-bg);border:1px solid var(--red)}
+    .alerta .icon{font-size:18px;flex-shrink:0}
+    .alerta strong{display:block;margin-bottom:2px}
+
+    /* PROJ */
+    .proj-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:14px}
+    .proj-card .p-header{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px}
+    .proj-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+    .proj-item{text-align:center}
+    .proj-item .pv{font-size:19px;font-weight:800;color:#fff}
+    .proj-item .pl{font-size:10px;color:var(--muted);margin-top:2px}
+
+    /* WHATSAPP PREVIEW */
+    .wpp-preview{background:#0d1117;border:1px solid #30363d;border-radius:10px;padding:16px;margin-top:12px;font-size:13px;line-height:1.7;color:#c9d1d9;white-space:pre-wrap;word-break:break-word;display:none}
+    .wpp-preview.visible{display:block}
+    .btn-copy{width:100%;background:#25D366;color:#fff;font-weight:700;font-size:13px;border:none;border-radius:8px;padding:12px;cursor:pointer;margin-top:8px;transition:opacity .2s}
+    .btn-copy:hover{opacity:.85}
+
+    /* DIVIDER */
+    .divider{height:1px;background:linear-gradient(to right,transparent,#333,transparent);margin:24px 0}
+
+    /* LOADING */
+    .loading{text-align:center;padding:60px;color:var(--muted);font-size:13px}
+    .spinner{width:30px;height:30px;border:3px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 14px}
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    @media(max-width:600px){
+      .grid-4{grid-template-columns:repeat(2,1fr)}
+      .grid-3{grid-template-columns:repeat(2,1fr)}
+      .proj-grid{grid-template-columns:repeat(2,1fr)}
+    }
+  </style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">POINT 43</div>
+    <div class="login-sub">CFO · PAINEL FINANCEIRO</div>
+    <div style="font-size:14px;color:var(--text);margin-bottom:20px;font-weight:600">Quem é você?</div>
+    <div class="pin-btns">
+      <button class="pin-btn" onclick="selecionarPerfil('cfo')">
+        <span class="emoji">📊</span><span>Benedito</span><span class="role">CFO</span>
+      </button>
+      <button class="pin-btn" onclick="selecionarPerfil('ceo')">
+        <span class="emoji">👑</span><span>Gustavo</span><span class="role">CEO</span>
+      </button>
+    </div>
+    <div class="pin-input-wrap" id="pin-wrap" style="display:none">
+      <label id="pin-label">Digite seu PIN</label>
+      <input class="pin-input" type="password" inputmode="numeric" maxlength="4" id="pin-input" placeholder="••••" onkeyup="if(event.key==='Enter')entrar()"/>
+      <button class="btn-enter" onclick="entrar()">ENTRAR</button>
+      <div class="login-error" id="login-error"></div>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app" style="display:none">
+  <header>
+    <h1>📊 CFO · POINT 43</h1>
+    <div class="user-badge">
+      <span id="header-user">—</span>
+      <button class="btn-logout" onclick="logout()">sair</button>
+    </div>
+  </header>
+  <div class="tabs" id="tabs"></div>
+
+  <div class="page" id="page-dashboard"><div class="loading"><div class="spinner"></div>Carregando...</div></div>
+  <div class="page" id="page-report"></div>
+  <div class="page" id="page-semanal"></div>
+  <div class="page" id="page-mensal"></div>
+  <div class="page" id="page-historico"><div class="loading"><div class="spinner"></div>Carregando...</div></div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script>
+// ── CONFIG ──────────────────────────────────────────────
+const firebaseConfig = {
+  apiKey: "AIzaSyAPIb1lpMXPb0ri3RZ_PRuaGQ4Cl7A9jrI",
+  authDomain: "point-43-cfo.firebaseapp.com",
+  databaseURL: "https://point-43-cfo-default-rtdb.firebaseio.com",
+  projectId: "point-43-cfo",
+  storageBucket: "point-43-cfo.appspot.com",
+  messagingSenderId: "302090423932",
+  appId: "1:302090423932:web:705d89036a2bd9f5f1c3f9"
+};
+
+let db = null;
+const fbConfigurado = firebaseConfig.apiKey !== "FIREBASE_API_KEY" && firebaseConfig.databaseURL.indexOf('point-43-cfo') > -1 && !firebaseConfig.databaseURL.includes('FIREBASE');
+if(fbConfigurado) {
+  try {
+    firebase.initializeApp(firebaseConfig);
+    db = firebase.database();
+  } catch(e) {
+    console.warn('Firebase erro:', e.message);
+  }
+} else {
+  console.warn('Firebase em modo demo — configure as credenciais para salvar dados.');
+}
+
+async function dbGet(path) {
+  if(!db) return null;
+  try {
+    const s = await Promise.race([
+      db.ref(path).get(),
+      new Promise((_,r) => setTimeout(() => r(new Error('timeout')), 5000))
+    ]);
+    return s.exists ? (s.exists() ? s.val() : null) : null;
+  } catch(e) { return null; }
+}
+async function dbSet(path, data) {
+  if(!db) throw new Error('Firebase não configurado. Contate o administrador.');
+  return db.ref(path).set(data);
+}
+
+const PINS = { cfo: "1234", ceo: "5678" };
+
+const CONFIG_DEFAULT = {
+  cota_diaria: 3100,
+  meta_mensal: 93000,
+  meta_superacao: 128000,
+  ticket_medio: 197,
+  alunos_ativos: 249,
+  mrr_wellhub: 16000,
+  dias_uteis_mes: 22
+};
+
+let perfil = null;
+let config = { ...CONFIG_DEFAULT };
+let reportDate = hoje();
+
+// ── UTILS ────────────────────────────────────────────────
+function hoje() { return new Date().toISOString().split('T')[0] }
+function mesAtual() { return hoje().slice(0,7) }
+function semanaAtual() {
+  const d = new Date();
+  const start = new Date(d); start.setDate(d.getDate() - d.getDay() + 1);
+  const end = new Date(start); end.setDate(start.getDate() + 6);
+  return `${fmtData(start)} a ${fmtData(end)}`;
+}
+function fmtData(d) {
+  return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}`;
+}
+function fmt(v) { return Number(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL',minimumFractionDigits:0,maximumFractionDigits:0}) }
+function fmtPct(v) { return Number(v||0).toFixed(1)+'%' }
+function diasUteisMesDecorridos() {
+  const agora=new Date(), inicio=new Date(agora.getFullYear(),agora.getMonth(),1);
+  let c=0; const d=new Date(inicio);
+  while(d<=agora){if(d.getDay()!==0&&d.getDay()!==6)c++;d.setDate(d.getDate()+1)}
+  return c;
+}
+function diasUteisRestantes() {
+  const agora=new Date(), fim=new Date(agora.getFullYear(),agora.getMonth()+1,0);
+  let c=0; const d=new Date(agora); d.setDate(d.getDate()+1);
+  while(d<=fim){if(d.getDay()!==0&&d.getDay()!==6)c++;d.setDate(d.getDate()+1)}
+  return c;
+}
+function tagCor(t,cor){return `<span class="tag ${cor}">${t}</span>`}
+function corCota(p){if(p===null)return'cinza';if(p>=100)return'verde';if(p>=40)return'amarelo';return'vermelho'}
+function corMes(p){if(p>=100)return'verde';if(p>=85)return'amarelo';return'vermelho'}
+function corInadim(p){if(p===null)return'cinza';if(p<5)return'verde';if(p<8)return'amarelo';return'vermelho'}
+
+async function carregarConfig() {
+  try { const v=await dbGet('config'); if(v)config={...CONFIG_DEFAULT,...v} } catch(e){}
+}
+
+// ── LOGIN ────────────────────────────────────────────────
+let perfilSelecionado = null;
+window.selecionarPerfil = p => {
+  perfilSelecionado = p;
+  document.getElementById('pin-wrap').style.display='block';
+  document.getElementById('pin-label').textContent = p==='cfo'?'PIN do Benedito':'PIN do Gustavo';
+  document.getElementById('pin-input').value='';
+  document.getElementById('login-error').textContent='';
+  document.getElementById('pin-input').focus();
+};
+window.entrar = () => {
+  const pin = document.getElementById('pin-input').value.trim();
+  if(pin===PINS[perfilSelecionado]){ perfil=perfilSelecionado; iniciarApp(); }
+  else { document.getElementById('login-error').textContent='PIN incorreto.'; document.getElementById('pin-input').value=''; }
+};
+window.logout = () => {
+  perfil=null; perfilSelecionado=null;
+  document.getElementById('app').style.display='none';
+  document.getElementById('login-screen').style.display='flex';
+  document.getElementById('pin-wrap').style.display='none';
+};
+
+async function iniciarApp() {
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('app').style.display='block';
+  document.getElementById('header-user').textContent = perfil==='cfo'?'Benedito (CFO)':'Gustavo (CEO)';
+  await carregarConfig();
+  montarTabs();
+  ativarTab(perfil==='cfo'?'semanal':'dashboard');
+}
+
+// ── TABS ─────────────────────────────────────────────────
+function montarTabs() {
+  const tabs = perfil==='cfo'
+    ? [{id:'semanal',l:'📅 Semanal'},{id:'mensal',l:'📆 Mensal'}]
+    : [{id:'dashboard',l:'📊 Dashboard'},{id:'historico',l:'🗂️ Histórico'}];
+  document.getElementById('tabs').innerHTML = tabs.map(t=>`<div class="tab" id="tab-${t.id}" onclick="ativarTab('${t.id}')">${t.l}</div>`).join('');
+}
+window.ativarTab = id => {
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  const te=document.getElementById('tab-'+id); if(te)te.classList.add('active');
+  const pe=document.getElementById('page-'+id); if(pe)pe.classList.add('active');
+  if(id==='dashboard')renderDashboard();
+  if(id==='semanal')renderSemanal();
+  if(id==='mensal')renderMensal();
+  if(id==='historico')renderHistorico();
+};
+
+// ── DASHBOARD (CEO) ──────────────────────────────────────
+async function renderDashboard() {
+  const el=document.getElementById('page-dashboard');
+  el.innerHTML='<div class="loading"><div class="spinner"></div>Carregando...</div>';
+
+  // Pega último semanal e último mensal
+  const sd = await dbGet(`semanas/${mesAtual()}`) || {};
+  const md = await dbGet(`mensal/${getMesAnterior()}`) || {};
+
+  const inadim = Number(sd.inadim||0);
+  const bloq7  = Number(sd.bloq7||0);
+  const frq    = Number(sd.frq||0);
+  const camp   = Number(sd.campanha||0);
+  const vSemana= Number(sd.vendas_semana||0);
+  const mSemana= Number(sd.mat_semana||0);
+  const cSemana= Number(sd.canc_semana||0);
+  const pctMes = Number(sd.pct_mes||0);
+
+  // Do mensal anterior
+  const mrrOrg  = Number(md.mrr||config.alunos_ativos*config.ticket_medio);
+  const ticket  = Number(md.ticket||config.ticket_medio);
+  const margem  = md.margem!==undefined ? Number(md.margem) : null;
+  const divida  = Number(md.divida||0);
+
+  // Semáforos
+  const cInadim = inadim===0?'cinza':inadim/config.alunos_ativos*100<5?'verde':inadim/config.alunos_ativos*100<8?'amarelo':'vermelho';
+  const cMes    = pctMes===0?'cinza':pctMes>=100?'verde':pctMes>=85?'amarelo':'vermelho';
+  const cMargem = margem===null?'cinza':margem>10?'verde':margem>0?'amarelo':'vermelho';
+  const cBloq   = bloq7===0?'verde':bloq7<5?'amarelo':'vermelho';
+
+  const temSemanal = Object.keys(sd).length > 0;
+  const alertaHtml = !temSemanal
+    ? `<div class="alerta amarelo"><span class="icon">⚠️</span><div><strong>Nenhum relatório semanal preenchido este mês</strong>Benedito ainda não enviou o semanal de ${mesAtual().split('-').reverse().join('/')}.</div></div>`
+    : sd.ponto ? `<div class="alerta amarelo"><span class="icon">📌</span><div><strong>Atenção da semana</strong>${sd.ponto}</div></div>` : '';
+
+  el.innerHTML=`
+    ${alertaHtml}
+
+    <div class="semaforo-bar">
+      <div class="semaforo-item"><div class="semaforo-luz ${cMes}"></div><div class="semaforo-info"><div class="s-label">Posição no mês</div><div class="s-val">${pctMes?fmtPct(pctMes):'—'}</div></div></div>
+      <div class="semaforo-item"><div class="semaforo-luz ${cInadim}"></div><div class="semaforo-info"><div class="s-label">Inadimplentes</div><div class="s-val">${temSemanal?inadim+' alunos':'—'}</div></div></div>
+      <div class="semaforo-item"><div class="semaforo-luz ${cBloq}"></div><div class="semaforo-info"><div class="s-label">Bloqueados +7d</div><div class="s-val">${temSemanal?bloq7:'—'}</div></div></div>
+      <div class="semaforo-item"><div class="semaforo-luz ${cMargem}"></div><div class="semaforo-info"><div class="s-label">Margem (mês ant.)</div><div class="s-val">${margem!==null?fmtPct(margem):'—'}</div></div></div>
+    </div>
+
+    <div class="sec-title">📅 ÚLTIMO SEMANAL — ${mesAtual().split('-').reverse().join('/')}</div>
+
+    <div class="grid-4">
+      <div class="metric-card"><div class="label">Vendas na semana</div><div class="value">${temSemanal?fmt(vSemana):'—'}</div><div class="sub">via Game Comercial</div></div>
+      <div class="metric-card"><div class="label">Matrículas</div><div class="value">${temSemanal?mSemana:'—'}</div><div class="sub">na semana</div></div>
+      <div class="metric-card"><div class="label">Cancelamentos</div><div class="value">${temSemanal?cSemana:'—'}</div><div class="sub">saldo: ${temSemanal?(mSemana-cSemana>=0?'+':'')+(mSemana-cSemana):'—'}</div></div>
+      <div class="metric-card"><div class="label">Disponível p/ campanha</div><div class="value">${temSemanal?fmt(camp):'—'}</div><div class="sub">informado pelo CFO</div></div>
+    </div>
+
+    <div class="sec-title">🔴 SAÚDE FINANCEIRA</div>
+    <div class="grid-2">
+      <div class="metric-card ${bloq7>10?'vermelho':bloq7>4?'amarelo':''}">
+        <div class="label">Inadimplentes em aberto</div><div class="value">${temSemanal?inadim:'—'}</div>
+        <div class="sub">${temSemanal?fmt(inadim*config.ticket_medio)+' parados':'sem semanal preenchido'}</div>
+      </div>
+      <div class="metric-card ${frq>30?'vermelho':frq>15?'amarelo':''}">
+        <div class="label">Freq. zerada (14d) → Mateus</div><div class="value">${temSemanal?frq:'—'}</div>
+        <div class="sub">risco de cancelamento</div>
+      </div>
+    </div>
+
+    ${sd.acao?`<div class="alerta verde"><span class="icon">✅</span><div><strong>Ação da semana</strong>${sd.acao}</div></div>`:''}
+
+    <div class="sec-title">📆 ÚLTIMO MENSAL — ${getMesAnterior().split('-').reverse().join('/')}</div>
+
+    <div class="proj-card">
+      <div class="p-header">Fechamento do mês anterior</div>
+      <div class="proj-grid">
+        <div class="proj-item"><div class="pv">${fmt(mrrOrg)}</div><div class="pl">MRR Orgânico</div></div>
+        <div class="proj-item"><div class="pv">${fmt(ticket)}</div><div class="pl">Ticket médio</div></div>
+        <div class="proj-item"><div class="pv" style="color:var(--${cMargem})">${margem!==null?fmtPct(margem):'—'}</div><div class="pl">Margem operacional</div></div>
+        <div class="proj-item"><div class="pv">${md.new_alunos||'—'}</div><div class="pl">Novas matrículas</div></div>
+        <div class="proj-item"><div class="pv">${md.canc||'—'}</div><div class="pl">Cancelamentos</div></div>
+        <div class="proj-item"><div class="pv">${divida?fmt(divida):'—'}</div><div class="pl">Dívida operacional</div></div>
+      </div>
+    </div>
+
+    ${md.i1||md.i2||md.i3?`
+    <div class="form-card" style="margin-top:14px">
+      <h3>🧠 Insights do mês anterior</h3>
+      ${md.i1?`<p style="font-size:13px;color:#ccc;margin-bottom:8px">1️⃣ ${md.i1}</p>`:''}
+      ${md.i2?`<p style="font-size:13px;color:#ccc;margin-bottom:8px">2️⃣ ${md.i2}</p>`:''}
+      ${md.i3?`<p style="font-size:13px;color:#ccc">3️⃣ ${md.i3}</p>`:''}
+    </div>`:''}
+  `;
+}
+
+// ── REPORT DIÁRIO ────────────────────────────────────────
+async function renderReport() {
+  const el=document.getElementById('page-report');
+  const mes=mesAtual(); let reports={};
+  try{const v=await dbGet(`reports/${mes}`);if(v)reports=v}catch(e){}
+  const re=reports[reportDate]||null, jp=!!re;
+  el.innerHTML=`
+    <div class="date-nav">
+      <input type="date" value="${reportDate}" max="${hoje()}" onchange="trocarData(this.value)"/>
+      <button class="today-btn" onclick="trocarData('${hoje()}')">Hoje</button>
+      <span class="date-status ${jp?'preenchido':'vazio'}">${jp?'✓ Preenchido':'Não preenchido'}</span>
+    </div>
+    <div class="form-card">
+      <h3>💰 Receita do dia</h3>
+      <div class="field-group">
+        <div class="field"><label>Matrículas (R$)</label><input type="number" id="f-mat" placeholder="0" min="0" value="${re?.vendas_mat||''}" oninput="calcTotal()"/></div>
+        <div class="field"><label>Renovações (R$)</label><input type="number" id="f-ren" placeholder="0" min="0" value="${re?.vendas_ren||''}" oninput="calcTotal()"/></div>
+        <div class="field"><label>Outros — avulso, aluguel (R$)</label><input type="number" id="f-out" placeholder="0" min="0" value="${re?.vendas_outros||''}" oninput="calcTotal()"/></div>
+      </div>
+    </div>
+    <div class="total-dia">
+      <div class="t-label">Total do dia</div>
+      <div class="t-val" id="total-dia">R$ 0</div>
+      <div class="t-cota" id="total-cota">Meta: ${fmt(config.cota_diaria)}</div>
+    </div>
+    <div class="form-card">
+      <h3>🏃 Atividade comercial</h3>
+      <div class="field-group">
+        <div class="field"><label>Matrículas realizadas</label><input type="number" id="f-mat-n" placeholder="0" min="0" value="${re?.matriculas||''}"/></div>
+        <div class="field"><label>Cancelamentos</label><input type="number" id="f-canc" placeholder="0" min="0" value="${re?.cancelamentos||''}"/></div>
+        <div class="field"><label>Renovações</label><input type="number" id="f-ren-n" placeholder="0" min="0" value="${re?.renovacoes||''}"/></div>
+        <div class="field"><label>Upsells</label><input type="number" id="f-ups" placeholder="0" min="0" value="${re?.upsells||''}"/></div>
+      </div>
+    </div>
+    <div class="form-card">
+      <h3>⚠️ Saúde financeira</h3>
+      <div class="field-group">
+        <div class="field"><label>Alunos bloqueados</label><input type="number" id="f-blq" placeholder="0" min="0" value="${re?.bloqueados||''}"/><span class="hint">Inadimplentes no sistema</span></div>
+        <div class="field"><label>Freq. zerada (14 dias)</label><input type="number" id="f-frq" placeholder="0" min="0" value="${re?.freq_zerada||''}"/><span class="hint">→ Enviar ao Mateus</span></div>
+        <div class="field"><label>Novos inadimplentes hoje</label><input type="number" id="f-niv" placeholder="0" min="0" value="${re?.novos_inadim||''}"/></div>
+      </div>
+    </div>
+    <div class="form-card">
+      <h3>📝 Observação do dia</h3>
+      <div class="field"><textarea id="f-obs" placeholder="Contexto do dia, pontos de atenção, ações realizadas...">${re?.obs||''}</textarea></div>
+    </div>
+    <button class="btn-primary" id="btn-salvar" onclick="salvarReport()">${jp?'✏️ ATUALIZAR REPORT':'💾 SALVAR REPORT'}</button>
+    <button class="btn-secondary" onclick="gerarResumoReport()">📲 GERAR RESUMO PARA WHATSAPP</button>
+    <div class="wpp-preview" id="wpp-report"></div>
+    <button class="btn-copy" id="btn-copy-report" style="display:none" onclick="copiar('wpp-report','btn-copy-report')">📋 COPIAR MENSAGEM</button>
+    <div class="save-msg" id="save-msg"></div>
+  `;
+  calcTotal();
+}
+
+window.trocarData = async d => { reportDate=d; await renderReport(); };
+window.calcTotal = () => {
+  const m=Number(document.getElementById('f-mat')?.value||0);
+  const r=Number(document.getElementById('f-ren')?.value||0);
+  const o=Number(document.getElementById('f-out')?.value||0);
+  const t=m+r+o, el=document.getElementById('total-dia'), ec=document.getElementById('total-cota');
+  if(el){el.textContent=fmt(t);const p=(t/config.cota_diaria)*100;el.style.color=p>=100?'var(--green)':p>=40?'var(--gold)':'var(--red)'}
+  if(ec){const p=(t/config.cota_diaria)*100;ec.textContent=`${fmtPct(p)} da cota · Meta: ${fmt(config.cota_diaria)}`}
+};
+
+window.salvarReport = async () => {
+  const btn=document.getElementById('btn-salvar'), msg=document.getElementById('save-msg');
+  btn.disabled=true;
+  const mat=Number(document.getElementById('f-mat')?.value||0);
+  const ren=Number(document.getElementById('f-ren')?.value||0);
+  const out=Number(document.getElementById('f-out')?.value||0);
+  const data={
+    vendas:mat+ren+out,vendas_mat:mat,vendas_ren:ren,vendas_outros:out,
+    matriculas:Number(document.getElementById('f-mat-n')?.value||0),
+    cancelamentos:Number(document.getElementById('f-canc')?.value||0),
+    renovacoes:Number(document.getElementById('f-ren-n')?.value||0),
+    upsells:Number(document.getElementById('f-ups')?.value||0),
+    bloqueados:Number(document.getElementById('f-blq')?.value||0),
+    freq_zerada:Number(document.getElementById('f-frq')?.value||0),
+    novos_inadim:Number(document.getElementById('f-niv')?.value||0),
+    obs:document.getElementById('f-obs')?.value||'',
+    timestamp:Date.now(),preenchido_por:'benedito'
+  };
+  try{await dbSet(`reports/${mesAtual()}/${reportDate}`,data);msg.textContent='✓ Salvo!';msg.className='save-msg ok';btn.textContent='✏️ ATUALIZAR REPORT';}
+  catch(e){msg.textContent='Erro ao salvar. Configure o Firebase.';msg.className='save-msg err';}
+  btn.disabled=false;
+};
+
+window.gerarResumoReport = () => {
+  const mat=Number(document.getElementById('f-mat')?.value||0);
+  const ren=Number(document.getElementById('f-ren')?.value||0);
+  const out=Number(document.getElementById('f-out')?.value||0);
+  const total=mat+ren+out;
+  const pct=(total/config.cota_diaria)*100;
+  const blq=Number(document.getElementById('f-blq')?.value||0);
+  const frq=Number(document.getElementById('f-frq')?.value||0);
+  const matN=Number(document.getElementById('f-mat-n')?.value||0);
+  const canc=Number(document.getElementById('f-canc')?.value||0);
+  const obs=document.getElementById('f-obs')?.value||'';
+  const data=reportDate.split('-').reverse().join('/');
+  const sinal=pct>=100?'🟢':pct>=40?'🟡':'🔴';
+  const msg=`📊 *REPORT DIÁRIO — Point 43*
+${data}
+
+${sinal} *Vendas do dia: ${fmt(total)}* (${fmtPct(pct)} da cota)
+├ Matrículas: ${fmt(mat)}
+├ Renovações: ${fmt(ren)}
+└ Outros: ${fmt(out)}
+
+🏃 *Atividade*
+├ Matrículas realizadas: ${matN}
+└ Cancelamentos: ${canc}
+
+⚠️ *Saúde financeira*
+├ Bloqueados: ${blq} alunos (≈ ${fmt(blq*config.ticket_medio)})
+└ Freq. zerada (14d): ${frq} alunos → Mateus${obs?`\n\n📝 ${obs}`:''}`;
+  const el=document.getElementById('wpp-report');
+  el.textContent=msg; el.classList.add('visible');
+  document.getElementById('btn-copy-report').style.display='block';
+};
+
+// ── SEMANAL ──────────────────────────────────────────────
+async function renderSemanal() {
+  const el=document.getElementById('page-semanal');
+  const semanaKey=`semanal-${mesAtual()}`;
+  let sd={};
+  try{const v=await dbGet(`semanas/${mesAtual()}`);if(v)sd=v;}catch(e){}
+
+  // Calcular totais dos reports da semana automaticamente
+  const mes=mesAtual(); let reports={};
+  try{const v=await dbGet(`reports/${mes}`);if(v)reports=v}catch(e){}
+  const agora=new Date();
+  const inicioSemana=new Date(agora); inicioSemana.setDate(agora.getDate()-agora.getDay()+1); inicioSemana.setHours(0,0,0,0);
+  let vSemana=0,mSemana=0,cSemana=0;
+  Object.entries(reports).forEach(([d,r])=>{
+    const dd=new Date(d+'T00:00:00');
+    if(dd>=inicioSemana){vSemana+=Number(r.vendas||0);mSemana+=Number(r.matriculas||0);cSemana+=Number(r.cancelamentos||0);}
+  });
+  const pctMes=(Object.values(reports).reduce((a,r)=>a+Number(r.vendas||0),0)/config.meta_mensal)*100;
+
+  el.innerHTML=`
+    <div class="alerta amarelo"><span class="icon">📅</span><div><strong>Relatório Semanal</strong>Preencher toda sexta até 17h. Levar para a reunião de segunda às 09h30.</div></div>
+
+    <div class="form-card">
+      <h3>📊 Números da semana — vêm do Game Comercial</h3>
+      <div class="field-group">
+        <div class="field"><label>Vendas na semana (R$)</label><input type="number" id="s-vendas" placeholder="0" min="0" value="${sd.vendas_semana||''}"/><span class="hint">Copiar do Game Comercial</span></div>
+        <div class="field"><label>Matrículas na semana</label><input type="number" id="s-mat" placeholder="0" min="0" value="${sd.mat_semana||''}"/></div>
+        <div class="field"><label>Cancelamentos na semana</label><input type="number" id="s-canc" placeholder="0" min="0" value="${sd.canc_semana||''}"/></div>
+        <div class="field"><label>Posição no mês (%)</label><input type="number" id="s-pct" placeholder="0" step="0.1" min="0" value="${sd.pct_mes||''}"/><span class="hint">Ex: 67.5 = 67,5% da meta</span></div>
+      </div>
+    </div>
+
+    <div class="form-card">
+      <h3>⚠️ Inadimplência da semana</h3>
+      <div class="field-group-2">
+        <div class="field">
+          <label>Total de alunos inadimplentes (em aberto)</label>
+          <input type="number" id="s-inadim" placeholder="0" min="0" value="${sd.inadim||''}"/>
+          <span class="hint">Qualquer valor desde o dia 1 já reportar</span>
+        </div>
+        <div class="field">
+          <label>Alunos bloqueados há mais de 7 dias</label>
+          <input type="number" id="s-bloq7" placeholder="0" min="0" value="${sd.bloq7||''}"/>
+        </div>
+        <div class="field">
+          <label>Alunos com freq. zerada (14d) → Mateus</label>
+          <input type="number" id="s-frq" placeholder="0" min="0" value="${sd.frq||''}"/>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-card">
+      <h3>💼 Para a reunião de sócios (segunda 09h30)</h3>
+      <div class="field-group-2">
+        <div class="field">
+          <label>Valor disponível para campanhas / ações (R$)</label>
+          <input type="number" id="s-campanha" placeholder="0" min="0" value="${sd.campanha||''}"/>
+          <span class="hint">Informar sempre que estiver abaixo da meta</span>
+        </div>
+        <div class="field">
+          <label>Principal ponto de atenção da semana</label>
+          <textarea id="s-ponto" placeholder="O que mais chamou atenção nos números esta semana?">${sd.ponto||''}</textarea>
+        </div>
+        <div class="field">
+          <label>Alguma ação realizada ou sugerida?</label>
+          <textarea id="s-acao" placeholder="Ex: acionamos 8 inadimplentes, resultado...">${sd.acao||''}</textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-card">
+      <h3>📝 Observações gerais da semana</h3>
+      <div class="field">
+        <textarea id="s-obs" placeholder="Contexto da semana, comportamentos observados, qualquer informação relevante...">${sd.obs||''}</textarea>
+      </div>
+    </div>
+
+    <button class="btn-primary" onclick="salvarSemanal()">💾 SALVAR RELATÓRIO SEMANAL</button>
+    <button class="btn-secondary" onclick="gerarResumoSemanal()">📲 GERAR RESUMO PARA WHATSAPP</button>
+    <div class="wpp-preview" id="wpp-semanal"></div>
+    <button class="btn-copy" id="btn-copy-semanal" style="display:none" onclick="copiar('wpp-semanal','btn-copy-semanal')">📋 COPIAR MENSAGEM</button>
+    <div class="save-msg" id="save-msg-s"></div>
+  `;
+}
+
+window.salvarSemanal = async () => {
+  const data={
+    vendas_semana:Number(document.getElementById('s-vendas')?.value||0),
+    mat_semana:Number(document.getElementById('s-mat')?.value||0),
+    canc_semana:Number(document.getElementById('s-canc')?.value||0),
+    pct_mes:Number(document.getElementById('s-pct')?.value||0),
+    inadim:Number(document.getElementById('s-inadim')?.value||0),
+    bloq7:Number(document.getElementById('s-bloq7')?.value||0),
+    frq:Number(document.getElementById('s-frq')?.value||0),
+    campanha:Number(document.getElementById('s-campanha')?.value||0),
+    ponto:document.getElementById('s-ponto')?.value||'',
+    acao:document.getElementById('s-acao')?.value||'',
+    obs:document.getElementById('s-obs')?.value||'',
+    timestamp:Date.now()
+  };
+  const msg=document.getElementById('save-msg-s');
+  try{await dbSet(`semanas/${mesAtual()}`,data);msg.textContent='✓ Salvo!';msg.className='save-msg ok';}
+  catch(e){msg.textContent='Erro ao salvar. Configure o Firebase.';msg.className='save-msg err';}
+};
+
+window.gerarResumoSemanal = () => {
+  const vSemana=Number(document.getElementById('s-vendas')?.value||0);
+  const mSemana=Number(document.getElementById('s-mat')?.value||0);
+  const cSemana=Number(document.getElementById('s-canc')?.value||0);
+  const pctMes=Number(document.getElementById('s-pct')?.value||0);
+  const inadim=Number(document.getElementById('s-inadim')?.value||0);
+  const bloq7=Number(document.getElementById('s-bloq7')?.value||0);
+  const frq=Number(document.getElementById('s-frq')?.value||0);
+  const camp=Number(document.getElementById('s-campanha')?.value||0);
+  const ponto=document.getElementById('s-ponto')?.value||'';
+  const acao=document.getElementById('s-acao')?.value||'';
+  const obs=document.getElementById('s-obs')?.value||'';
+  const sinal=pctMes>=100?'🟢':pctMes>=85?'🟡':'🔴';
+  const msg=`📅 *RESUMO SEMANAL — Point 43*
+${semanaAtual()}
+
+${sinal} *Posição no mês: ${fmtPct(pctMes)}* da meta (${fmt(config.meta_mensal)})
+
+💰 *Vendas da semana: ${fmt(vSemana)}*
+├ Matrículas: ${mSemana}
+└ Cancelamentos: ${cSemana}
+
+⚠️ *Inadimplência*
+├ Total em aberto: ${inadim} alunos
+├ Bloqueados há +7 dias: ${bloq7}
+└ Freq. zerada (14d): ${frq} → Mateus
+
+💼 *Disponível para campanha: ${fmt(camp)}*${ponto?`\n\n📌 *Atenção:* ${ponto}`:''}${acao?`\n\n✅ *Ação:* ${acao}`:''}${obs?`\n\n📝 ${obs}`:''}`;
+  const el=document.getElementById('wpp-semanal');
+  el.textContent=msg; el.classList.add('visible');
+  document.getElementById('btn-copy-semanal').style.display='block';
+};
+
+// ── MENSAL ───────────────────────────────────────────────
+async function renderMensal() {
+  const el=document.getElementById('page-mensal');
+  const mesAnterior=getMesAnterior();
+  let md={};
+  try{const v=await dbGet(`mensal/${mesAnterior}`);if(v)md=v;}catch(e){}
+
+  el.innerHTML=`
+    <div class="alerta amarelo"><span class="icon">📆</span><div><strong>Relatório Mensal — ref. ${mesAnterior}</strong>Preencher e enviar até o dia 3 do mês seguinte, antes das 10h.</div></div>
+
+    <div class="form-card">
+      <h3>💰 Faturamento do mês</h3>
+      <div class="field-group">
+        <div class="field"><label>MRR Orgânico fechado (R$)</label><input type="number" id="m-mrr" placeholder="0" value="${md.mrr||''}"/><span class="hint">Sem convênio</span></div>
+        <div class="field"><label>Wellhub / Totalpass (R$)</label><input type="number" id="m-wellhub" placeholder="${config.mrr_wellhub}" value="${md.wellhub||''}"/></div>
+        <div class="field"><label>Avulsos + aluguel + outros (R$)</label><input type="number" id="m-outros" placeholder="0" value="${md.outros||''}"/></div>
+        <div class="field"><label>Faturamento bruto total (R$)</label><input type="number" id="m-fat" placeholder="0" value="${md.fat||''}" oninput="calcMargem()"/><span class="hint">Soma de todos acima</span></div>
+      </div>
+    </div>
+
+    <div class="form-card">
+      <h3>📊 Indicadores do mês</h3>
+      <div class="field-group">
+        <div class="field"><label>Alunos ativos no fechamento</label><input type="number" id="m-alunos" placeholder="${config.alunos_ativos}" value="${md.alunos||''}"/></div>
+        <div class="field"><label>Ticket médio real (R$)</label><input type="number" id="m-ticket" placeholder="0" value="${md.ticket||''}"/><span class="hint">MRR orgânico ÷ alunos ativos</span></div>
+        <div class="field"><label>Novas matrículas</label><input type="number" id="m-new" placeholder="0" value="${md.new_alunos||''}"/></div>
+        <div class="field"><label>Cancelamentos</label><input type="number" id="m-canc" placeholder="0" value="${md.canc||''}"/></div>
+        <div class="field"><label>Inadimplência no fechamento (%)</label><input type="number" id="m-inadim" placeholder="0" step="0.1" value="${md.inadim||''}"/></div>
+        <div class="field"><label>Alunos bloqueados no fechamento</label><input type="number" id="m-bloq" placeholder="0" value="${md.bloq||''}"/></div>
+      </div>
+    </div>
+
+    <div class="form-card">
+      <h3>💸 Custos e margem</h3>
+      <div class="field-group">
+        <div class="field"><label>Custo variável total (R$)</label><input type="number" id="m-custo" placeholder="0" value="${md.custo||''}" oninput="calcMargem()"/><span class="hint">Folha variável, comissões, insumos</span></div>
+        <div class="field"><label>Gasto com marketing (R$)</label><input type="number" id="m-mkt" placeholder="0" value="${md.mkt||''}"/></div>
+        <div class="field"><label>Margem operacional (%)</label><input type="number" id="m-margem" placeholder="—" step="0.1" value="${md.margem||''}" style="color:var(--gold)"/><span class="hint">Calculado automaticamente</span></div>
+        <div class="field"><label>CAC estimado (R$)</label><input type="number" id="m-cac" placeholder="0" value="${md.cac||''}"/><span class="hint">(Mkt + comissões) ÷ novas matrículas</span></div>
+      </div>
+    </div>
+
+    <div class="form-card">
+      <h3>🏦 Fluxo de caixa e dívida</h3>
+      <div class="field-group">
+        <div class="field"><label>Recebimento previsto no mês (R$)</label><input type="number" id="m-prev" placeholder="0" value="${md.prev||''}"/></div>
+        <div class="field"><label>Recebimento realizado (R$)</label><input type="number" id="m-real" placeholder="0" value="${md.real||''}"/></div>
+        <div class="field"><label>Dívida operacional atual (R$)</label><input type="number" id="m-divida" placeholder="70000" value="${md.divida||''}"/><span class="hint">Base: R$70k</span></div>
+        <div class="field"><label>Wellhub/Totalpass em dia?</label>
+          <select id="m-wellhub-ok" style="background:#111;border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:#fff;font-size:14px;outline:none">
+            <option value="sim" ${md.wellhub_ok==='sim'?'selected':''}>✅ Sim, em dia</option>
+            <option value="nao" ${md.wellhub_ok==='nao'?'selected':''}>❌ Não — verificar</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-card">
+      <h3>🧠 Análise qualitativa</h3>
+      <div class="field-group-2">
+        <div class="field"><label>Insight 1 — O que melhorou?</label><textarea id="m-i1" placeholder="Ex: ticket médio subiu R$12 em relação ao mês anterior...">${md.i1||''}</textarea></div>
+        <div class="field"><label>Insight 2 — O que preocupa?</label><textarea id="m-i2" placeholder="Ex: churn acima do esperado, concentrado nos planos Light...">${md.i2||''}</textarea></div>
+        <div class="field"><label>Insight 3 — O que mudou de comportamento?</label><textarea id="m-i3" placeholder="Ex: alunos do Wellhub usando mais os horários de pico...">${md.i3||''}</textarea></div>
+        <div class="field"><label>Meta para o próximo mês</label><textarea id="m-meta" placeholder="MRR alvo, ticket médio alvo, novos alunos esperados, foco do mês...">${md.meta||''}</textarea></div>
+      </div>
+    </div>
+
+    <button class="btn-primary" onclick="salvarMensal()">💾 SALVAR RELATÓRIO MENSAL</button>
+    <button class="btn-secondary" onclick="gerarResumoMensal()">📲 GERAR RESUMO PARA WHATSAPP</button>
+    <div class="wpp-preview" id="wpp-mensal"></div>
+    <button class="btn-copy" id="btn-copy-mensal" style="display:none" onclick="copiar('wpp-mensal','btn-copy-mensal')">📋 COPIAR MENSAGEM</button>
+    <div class="save-msg" id="save-msg-m"></div>
+  `;
+  calcMargem();
+}
+
+function getMesAnterior() {
+  const d=new Date(); d.setMonth(d.getMonth()-1);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+}
+
+window.calcMargem = () => {
+  const fat=Number(document.getElementById('m-fat')?.value||0);
+  const custo=Number(document.getElementById('m-custo')?.value||0);
+  const el=document.getElementById('m-margem');
+  if(el&&fat>0){
+    const m=((fat-custo)/fat*100).toFixed(1);
+    el.value=m;
+    el.style.color=m<0?'var(--red)':m<10?'var(--yellow)':'var(--green)';
+  }
+};
+
+window.salvarMensal = async () => {
+  const data={
+    mrr:Number(document.getElementById('m-mrr')?.value||0),
+    wellhub:Number(document.getElementById('m-wellhub')?.value||0),
+    outros:Number(document.getElementById('m-outros')?.value||0),
+    fat:Number(document.getElementById('m-fat')?.value||0),
+    alunos:Number(document.getElementById('m-alunos')?.value||0),
+    ticket:Number(document.getElementById('m-ticket')?.value||0),
+    new_alunos:Number(document.getElementById('m-new')?.value||0),
+    canc:Number(document.getElementById('m-canc')?.value||0),
+    inadim:Number(document.getElementById('m-inadim')?.value||0),
+    bloq:Number(document.getElementById('m-bloq')?.value||0),
+    custo:Number(document.getElementById('m-custo')?.value||0),
+    mkt:Number(document.getElementById('m-mkt')?.value||0),
+    margem:Number(document.getElementById('m-margem')?.value||0),
+    cac:Number(document.getElementById('m-cac')?.value||0),
+    prev:Number(document.getElementById('m-prev')?.value||0),
+    real:Number(document.getElementById('m-real')?.value||0),
+    divida:Number(document.getElementById('m-divida')?.value||0),
+    wellhub_ok:document.getElementById('m-wellhub-ok')?.value||'sim',
+    i1:document.getElementById('m-i1')?.value||'',
+    i2:document.getElementById('m-i2')?.value||'',
+    i3:document.getElementById('m-i3')?.value||'',
+    meta:document.getElementById('m-meta')?.value||'',
+    timestamp:Date.now()
+  };
+  const msg=document.getElementById('save-msg-m');
+  try{await dbSet(`mensal/${getMesAnterior()}`,data);msg.textContent='✓ Salvo!';msg.className='save-msg ok';}
+  catch(e){msg.textContent='Erro ao salvar. Configure o Firebase.';msg.className='save-msg err';}
+};
+
+window.gerarResumoMensal = () => {
+  const mrr=Number(document.getElementById('m-mrr')?.value||0);
+  const wh=Number(document.getElementById('m-wellhub')?.value||0);
+  const fat=Number(document.getElementById('m-fat')?.value||0);
+  const ticket=Number(document.getElementById('m-ticket')?.value||0);
+  const newA=Number(document.getElementById('m-new')?.value||0);
+  const canc=Number(document.getElementById('m-canc')?.value||0);
+  const inadim=document.getElementById('m-inadim')?.value||'—';
+  const margem=document.getElementById('m-margem')?.value||'—';
+  const cac=Number(document.getElementById('m-cac')?.value||0);
+  const divida=Number(document.getElementById('m-divida')?.value||0);
+  const i1=document.getElementById('m-i1')?.value||'';
+  const i2=document.getElementById('m-i2')?.value||'';
+  const i3=document.getElementById('m-i3')?.value||'';
+  const meta=document.getElementById('m-meta')?.value||'';
+  const whOk=document.getElementById('m-wellhub-ok')?.value==='sim'?'✅ Em dia':'❌ Verificar';
+  const pctMeta=(fat/config.meta_mensal)*100;
+  const sinal=pctMeta>=100?'🟢':pctMeta>=90?'🟡':'🔴';
+  const mes=getMesAnterior().split('-').reverse().join('/');
+  const msg=`📆 *RELATÓRIO MENSAL — Point 43*
+Ref. ${mes} · Enviado dia ${hoje().split('-').reverse().join('/')}
+
+${sinal} *Faturamento: ${fmt(fat)}* (${fmtPct(pctMeta)} da meta)
+├ MRR Orgânico: ${fmt(mrr)}
+└ Wellhub/Totalpass: ${fmt(wh)} ${whOk}
+
+📊 *Indicadores*
+├ Ticket médio: ${fmt(ticket)}
+├ Novas matrículas: ${newA} | Cancelamentos: ${canc}
+├ Saldo líquido: ${newA-canc>=0?'+':''}${newA-canc} alunos
+├ Inadimplência: ${inadim}%
+└ Margem operacional: ${margem}%
+
+💸 *CAC: ${fmt(cac)}* | Dívida: ${fmt(divida)}${i1?`\n\n🧠 *Insights*\n1️⃣ ${i1}`:''}${i2?`\n2️⃣ ${i2}`:''}${i3?`\n3️⃣ ${i3}`:''}${meta?`\n\n🎯 *Meta do próximo mês*\n${meta}`:''}`;
+  const el=document.getElementById('wpp-mensal');
+  el.textContent=msg; el.classList.add('visible');
+  document.getElementById('btn-copy-mensal').style.display='block';
+};
+
+// ── HISTÓRICO ────────────────────────────────────────────
+async function renderHistorico() {
+  const el=document.getElementById('page-historico');
+  el.innerHTML='<div class="loading"><div class="spinner"></div>Carregando...</div>';
+  const mes=mesAtual(); let reports={};
+  try{const v=await dbGet(`reports/${mes}`);if(v)reports=v}catch(e){}
+  const datas=Object.keys(reports).sort().reverse();
+  let tv=0,tm=0,tc=0;
+  datas.forEach(d=>{tv+=Number(reports[d].vendas||0);tm+=Number(reports[d].matriculas||0);tc+=Number(reports[d].cancelamentos||0)});
+  el.innerHTML=`
+    <div class="sec-title">📅 Histórico do mês — ${mes.split('-').reverse().join('/')}</div>
+    <div class="grid-3" style="margin-bottom:16px">
+      <div class="metric-card"><div class="label">Total vendas</div><div class="value">${fmt(tv)}</div><div class="sub">${fmtPct((tv/config.meta_mensal)*100)} da meta</div></div>
+      <div class="metric-card"><div class="label">Matrículas</div><div class="value">${tm}</div><div class="sub">no mês</div></div>
+      <div class="metric-card"><div class="label">Cancelamentos</div><div class="value">${tc}</div><div class="sub">saldo: ${tm-tc>=0?'+':''}${tm-tc}</div></div>
+    </div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Data</th><th>Vendas</th><th>Mat.</th><th>Canc.</th><th>Bloqueados</th><th>Obs.</th><th>% Cota</th></tr></thead>
+      <tbody>${datas.length===0
+        ?'<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:20px">Sem reports este mês</td></tr>'
+        :datas.map(d=>{const r=reports[d],v=Number(r.vendas||0),p=(v/config.cota_diaria)*100,cor=p>=100?'verde':p>=40?'amarelo':'vermelho';
+          return`<tr><td>${d.split('-').reverse().join('/')}</td><td>${fmt(v)}</td><td>${r.matriculas||0}</td><td>${r.cancelamentos||0}</td><td>${r.bloqueados||'—'}</td><td style="max-width:160px;font-size:11px;color:var(--muted)">${r.obs?r.obs.slice(0,50)+(r.obs.length>50?'...':''):'—'}</td><td>${tagCor(fmtPct(p),cor)}</td></tr>`}).join('')
+      }</tbody>
+    </table></div>
+  `;
+}
+
+// ── COPIAR ───────────────────────────────────────────────
+window.copiar = (id, btnId) => {
+  const txt=document.getElementById(id)?.textContent||'';
+  navigator.clipboard.writeText(txt).then(()=>{
+    const btn=document.getElementById(btnId);
+    if(btn){btn.textContent='✅ COPIADO!';setTimeout(()=>{btn.textContent='📋 COPIAR MENSAGEM'},2000)}
+  }).catch(()=>{
+    // fallback
+    const ta=document.createElement('textarea');ta.value=txt;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);
+    const btn=document.getElementById(btnId);if(btn){btn.textContent='✅ COPIADO!';setTimeout(()=>{btn.textContent='📋 COPIAR MENSAGEM'},2000)}
+  });
+};
+
+function semanaAtual(){
+  const d=new Date(),s=new Date(d);s.setDate(d.getDate()-d.getDay()+1);
+  const e=new Date(s);e.setDate(s.getDate()+6);
+  return`${fmtData(s)} a ${fmtData(e)}`;
+}
+</script>
+
+</body>
+</html>
