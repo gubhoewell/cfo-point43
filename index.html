@@ -223,6 +223,7 @@
   <div class="page" id="page-mensal"></div>
   <div class="page" id="page-historico"><div class="loading"><div class="spinner"></div>Carregando...</div></div>
   <div class="page" id="page-config"></div>
+  <div class="page" id="page-mensagens"></div>
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -357,7 +358,7 @@ async function iniciarApp() {
 // ── TABS ─────────────────────────────────────────────────
 function montarTabs() {
   const tabs = perfil==='cfo'
-    ? [{id:'semanal',l:'📅 Semanal'},{id:'mensal',l:'📆 Mensal'}]
+    ? [{id:'semanal',l:'📅 Semanal'},{id:'mensal',l:'📆 Mensal'},{id:'mensagens',l:'📣 Mensagens'}]
     : [{id:'dashboard',l:'📊 Dashboard'},{id:'historico',l:'🗂️ Histórico'},{id:'config',l:'⚙️ Config'}];
   document.getElementById('tabs').innerHTML = tabs.map(t=>`<div class="tab" id="tab-${t.id}" onclick="ativarTab('${t.id}')">${t.l}</div>`).join('');
 }
@@ -371,6 +372,7 @@ window.ativarTab = id => {
   if(id==='mensal')renderMensal();
   if(id==='historico')renderHistorico();
   if(id==='config')renderConfig();
+  if(id==='mensagens')renderMensagens();
 };
 
 // ── DASHBOARD (CEO) ──────────────────────────────────────
@@ -931,6 +933,111 @@ function semanaAtual(){
   const e=new Date(s);e.setDate(s.getDate()+6);
   return`${fmtData(s)} a ${fmtData(e)}`;
 }
+
+// ── MENSAGENS (CFO) ──────────────────────────────────────
+const TEMPLATES = [
+  {
+    cat: '☀️ Abertura do dia',
+    items: [
+      {
+        titulo: 'Dia normal — motivar',
+        msg: `Bom dia, time! ☀️\n\nOntem fechamos *R$[VALOR]* — [acima/abaixo] da cota de R$3.100.\n\nHoje a meta é *R$3.100*. Foco nas matrículas e renovações.\n\nVamos nessa! 💪`
+      },
+      {
+        titulo: 'Dia fraco ontem — recuperar',
+        msg: `Bom dia! 🔥\n\nOntem fechamos *R$[VALOR]* — abaixo da cota. Precisamos compensar hoje.\n\nMeta do dia: *R$[META_COMPENSACAO]* para manter o ritmo do mês.\n\nQue campanha a gente consegue rodar hoje para acelerar?`
+      },
+      {
+        titulo: 'Dia forte ontem — manter ritmo',
+        msg: `Bom dia, time! 🏆\n\nOntem foi forte: *R$[VALOR]*! Excelente.\n\nEstamos em *[PCT]%* da meta mensal. Manter esse ritmo hoje garante um mês tranquilo.\n\nContinuem assim! 💛`
+      }
+    ]
+  },
+  {
+    cat: '🕛 Status meio-dia',
+    items: [
+      {
+        titulo: 'Ritmo bom',
+        msg: `Status 12h 📊\n\nEstamos em *R$[VALOR]* hoje. Ritmo no caminho certo.\n\nTarde forte para fechar bem o dia! 💪`
+      },
+      {
+        titulo: 'Ritmo fraco — acionar',
+        msg: `Status 12h ⚠️\n\nEstamos em *R$[VALOR]* hoje. Precisamos de *R$[RESTANTE]* nas próximas horas para bater a cota.\n\nQue ação conseguimos acionar agora? Leads quentes na fila?`
+      },
+      {
+        titulo: 'Dia já garantido',
+        msg: `Status 12h ✅\n\nCota do dia já garantida: *R$[VALOR]*!\n\nToda venda agora é bônus para o mês. Aproveitem a tarde para qualificar leads para amanhã.`
+      }
+    ]
+  },
+  {
+    cat: '📅 Fechamento semanal',
+    items: [
+      {
+        titulo: 'Semana acima da meta',
+        msg: `Fechamento da semana 📅\n\nSemana encerrada com *R$[VALOR_SEMANA]*! Acima da meta.\n\nEstamos em *[PCT]%* da meta do mês — posição confortável.\n\nFim de semana para recarregar e segunda voltamos mais fortes! 🏆`
+      },
+      {
+        titulo: 'Semana abaixo — precisa acelerar',
+        msg: `Fechamento da semana 📅\n\nFechamos *R$[VALOR_SEMANA]* na semana — abaixo do esperado.\n\nEstamos em *[PCT]%* da meta mensal. Para bater precisamos de *R$[RESTANTE]* nas próximas semanas.\n\nVamos alinhar na segunda uma estratégia para recuperar o ritmo. 💪`
+      }
+    ]
+  },
+  {
+    cat: '🚨 Alertas e ações',
+    items: [
+      {
+        titulo: 'Inadimplência alta',
+        msg: `⚠️ Inadimplência\n\nTemos *[N] alunos* com pagamento em aberto — *[PCT]%* da base.\n\nEstou acionando o fluxo de régua de cobrança. Quem não resolver até [DATA] será bloqueado automaticamente.`
+      },
+      {
+        titulo: 'Alunos bloqueados',
+        msg: `🔒 Alunos bloqueados\n\nTemos *[N] alunos* bloqueados hoje — equivale a *R$[VALOR]* de receita travada.\n\nPrecisamos resolver esses casos prioritariamente. Estou passando a lista para o atendimento.`
+      },
+      {
+        titulo: 'Campanha urgente — fim de semana',
+        msg: `📣 Proposta de campanha\n\nEstamos em *[PCT]%* da meta do mês. Sugiro rodarmos uma ação no fim de semana para recuperar.\n\nIdeia: *[DESCREVER CAMPANHA]*.\n\nGustavo, aprovação?`
+      },
+      {
+        titulo: 'Resultado positivo — reconhecer time',
+        msg: `🏆 Reconhecimento\n\nTime, quero registrar: fechamos *[PERÍODO]* com *R$[VALOR]*.\n\nIsso representa *[PCT]%* da meta. Resultado de trabalho consistente de cada uma.\n\nObrigado pelo esforço! 💛`
+      }
+    ]
+  }
+];
+
+function renderMensagens() {
+  const el = document.getElementById('page-mensagens');
+  el.innerHTML = `
+    <h2 style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--gold);letter-spacing:2px;margin-bottom:6px">📣 Templates de Mensagem</h2>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:20px">Consulte o Game Comercial, escolha o template, edite os valores entre [ ] e envie no grupo.</p>
+    ${TEMPLATES.map(cat=>`
+      <div style="margin-bottom:24px">
+        <div style="font-size:11px;font-weight:700;color:var(--gold);letter-spacing:1px;text-transform:uppercase;margin-bottom:10px">${cat.cat}</div>
+        ${cat.items.map((t,i)=>{
+          const id = 'msg-'+cat.cat.replace(/\W/g,'')+i;
+          return `
+          <div class="card" style="margin-bottom:10px">
+            <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:10px">${t.titulo}</div>
+            <pre id="${id}" style="white-space:pre-wrap;font-family:'Inter',sans-serif;font-size:13px;color:#ccc;line-height:1.7;background:var(--card2);border-radius:8px;padding:12px;border:1px solid var(--border)">${t.msg}</pre>
+            <button onclick="copiarMsg('${id}',this)" style="margin-top:10px;width:100%;background:var(--gold);color:#000;border:none;border-radius:8px;padding:10px;font-size:12px;font-weight:700;letter-spacing:1px;cursor:pointer">📋 COPIAR</button>
+          </div>`
+        }).join('')}
+      </div>
+    `).join('')}
+  `;
+}
+
+window.copiarMsg = (id, btn) => {
+  const txt = document.getElementById(id)?.textContent || '';
+  navigator.clipboard.writeText(txt).then(()=>{
+    btn.textContent = '✅ COPIADO!';
+    setTimeout(()=>{ btn.textContent = '📋 COPIAR'; }, 2000);
+  }).catch(()=>{
+    const ta=document.createElement('textarea');ta.value=txt;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);
+    btn.textContent='✅ COPIADO!';setTimeout(()=>{ btn.textContent='📋 COPIAR'; },2000);
+  });
+};
 
 // ── CONFIG (CEO) ─────────────────────────────────────────
 function renderConfig() {
