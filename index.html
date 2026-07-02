@@ -346,6 +346,13 @@ window.logout = () => {
   document.getElementById('pin-wrap').style.display='none';
 };
 
+async function preCarregar() {
+  try {
+    const p = await dbGet('pins');
+    if(p && p.cfo && p.ceo) PINS = {...p};
+  } catch(e) {}
+}
+
 async function iniciarApp() {
   document.getElementById('login-screen').style.display='none';
   document.getElementById('app').style.display='block';
@@ -354,6 +361,8 @@ async function iniciarApp() {
   montarTabs();
   ativarTab(perfil==='cfo'?'semanal':'dashboard');
 }
+
+document.addEventListener('DOMContentLoaded', preCarregar);
 
 // ── TABS ─────────────────────────────────────────────────
 function montarTabs() {
