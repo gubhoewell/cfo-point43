@@ -222,6 +222,7 @@
   <div class="page" id="page-semanal"></div>
   <div class="page" id="page-mensal"></div>
   <div class="page" id="page-historico"><div class="loading"><div class="spinner"></div>Carregando...</div></div>
+  <div class="page" id="page-config"></div>
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -266,7 +267,7 @@ async function dbSet(path, data) {
   return db.ref(path).set(data);
 }
 
-const PINS = { cfo: "1234", ceo: "5678" };
+let PINS = { cfo: "1234", ceo: "5678" };
 
 const CONFIG_DEFAULT = {
   cota_diaria: 3100,
@@ -314,7 +315,12 @@ function corMes(p){if(p>=100)return'verde';if(p>=85)return'amarelo';return'verme
 function corInadim(p){if(p===null)return'cinza';if(p<5)return'verde';if(p<8)return'amarelo';return'vermelho'}
 
 async function carregarConfig() {
-  try { const v=await dbGet('config'); if(v)config={...CONFIG_DEFAULT,...v} } catch(e){}
+  try {
+    const v=await dbGet('config');
+    if(v) config={...CONFIG_DEFAULT,...v};
+    const p=await dbGet('pins');
+    if(p && p.cfo && p.ceo) PINS={...p};
+  } catch(e){}
 }
 
 // ── LOGIN ────────────────────────────────────────────────
@@ -352,7 +358,7 @@ async function iniciarApp() {
 function montarTabs() {
   const tabs = perfil==='cfo'
     ? [{id:'semanal',l:'📅 Semanal'},{id:'mensal',l:'📆 Mensal'}]
-    : [{id:'dashboard',l:'📊 Dashboard'},{id:'historico',l:'🗂️ Histórico'}];
+    : [{id:'dashboard',l:'📊 Dashboard'},{id:'historico',l:'🗂️ Histórico'},{id:'config',l:'⚙️ Config'}];
   document.getElementById('tabs').innerHTML = tabs.map(t=>`<div class="tab" id="tab-${t.id}" onclick="ativarTab('${t.id}')">${t.l}</div>`).join('');
 }
 window.ativarTab = id => {
@@ -364,6 +370,7 @@ window.ativarTab = id => {
   if(id==='semanal')renderSemanal();
   if(id==='mensal')renderMensal();
   if(id==='historico')renderHistorico();
+  if(id==='config')renderConfig();
 };
 
 // ── DASHBOARD (CEO) ──────────────────────────────────────
@@ -924,6 +931,48 @@ function semanaAtual(){
   const e=new Date(s);e.setDate(s.getDate()+6);
   return`${fmtData(s)} a ${fmtData(e)}`;
 }
+
+// ── CONFIG (CEO) ─────────────────────────────────────────
+function renderConfig() {
+  const el = document.getElementById('page-config');
+  el.innerHTML = `
+    <h2 style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--gold);letter-spacing:2px;margin-bottom:20px">⚙️ Configurações</h2>
+
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-title">🔐 PINs de Acesso</div>
+      <div style="display:grid;gap:12px;margin-top:12px">
+        <div>
+          <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:6px">PIN do CFO (Benedito)</label>
+          <input id="cfg-pin-cfo" type="password" value="${PINS.cfo}" maxlength="8"
+            style="background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-size:16px;letter-spacing:4px;width:100%;outline:none"/>
+        </div>
+        <div>
+          <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:6px">PIN do CEO (Gustavo)</label>
+          <input id="cfg-pin-ceo" type="password" value="${PINS.ceo}" maxlength="8"
+            style="background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-size:16px;letter-spacing:4px;width:100%;outline:none"/>
+        </div>
+        <button onclick="salvarPins()" class="btn-primary" style="margin-top:4px">💾 Salvar PINs</button>
+        <div id="cfg-msg" style="font-size:12px;text-align:center;min-height:18px"></div>
+      </div>
+    </div>
+  `;
+}
+
+window.salvarPins = async () => {
+  const cfo = document.getElementById('cfg-pin-cfo').value.trim();
+  const ceo = document.getElementById('cfg-pin-ceo').value.trim();
+  const msg = document.getElementById('cfg-msg');
+  if(cfo.length < 4 || ceo.length < 4){ msg.style.color='var(--red)'; msg.textContent='PINs precisam ter pelo menos 4 dígitos.'; return; }
+  if(cfo === ceo){ msg.style.color='var(--red)'; msg.textContent='PINs não podem ser iguais.'; return; }
+  try {
+    await dbSet('pins', { cfo, ceo });
+    PINS.cfo = cfo; PINS.ceo = ceo;
+    msg.style.color='var(--green)'; msg.textContent='✅ PINs atualizados!';
+    setTimeout(()=>{ msg.textContent=''; }, 3000);
+  } catch(e) {
+    msg.style.color='var(--red)'; msg.textContent='Erro ao salvar. Tente novamente.';
+  }
+};
 </script>
 
 </body>
