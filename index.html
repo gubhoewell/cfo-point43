@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>CFO Dashboard — Point 43</title>
+  <title>Painel de Gestão — Point 43</title>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -187,11 +187,14 @@
 <div id="login-screen">
   <div class="login-box">
     <div class="login-logo">POINT 43</div>
-    <div class="login-sub">CFO · PAINEL FINANCEIRO</div>
+    <div class="login-sub">PAINEL DE GESTÃO</div>
     <div style="font-size:14px;color:var(--text);margin-bottom:20px;font-weight:600">Quem é você?</div>
-    <div class="pin-btns">
+    <div class="pin-btns" style="grid-template-columns:repeat(3,1fr)">
       <button class="pin-btn" onclick="selecionarPerfil('cfo')">
         <span class="emoji">📊</span><span>Benedito</span><span class="role">CFO</span>
+      </button>
+      <button class="pin-btn" onclick="selecionarPerfil('coo')">
+        <span class="emoji">⚙️</span><span>Mateus</span><span class="role">COO</span>
       </button>
       <button class="pin-btn" onclick="selecionarPerfil('ceo')">
         <span class="emoji">👑</span><span>Gustavo</span><span class="role">CEO</span>
@@ -224,6 +227,8 @@
   <div class="page" id="page-historico"><div class="loading"><div class="spinner"></div>Carregando...</div></div>
   <div class="page" id="page-config"></div>
   <div class="page" id="page-mensagens"></div>
+  <div class="page" id="page-coo-semanal"></div>
+  <div class="page" id="page-coo-dashboard"><div class="loading"><div class="spinner"></div>Carregando...</div></div>
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -268,7 +273,7 @@ async function dbSet(path, data) {
   return db.ref(path).set(data);
 }
 
-let PINS = { cfo: "1234", ceo: "5678" };
+let PINS = { cfo: "1234", coo: "2222", ceo: "5678" };
 
 const CONFIG_DEFAULT = {
   cota_diaria: 3100,
@@ -329,7 +334,7 @@ let perfilSelecionado = null;
 window.selecionarPerfil = p => {
   perfilSelecionado = p;
   document.getElementById('pin-wrap').style.display='block';
-  document.getElementById('pin-label').textContent = p==='cfo'?'PIN do Benedito':'PIN do Gustavo';
+  document.getElementById('pin-label').textContent = p==='cfo'?'PIN do Benedito':p==='coo'?'PIN do Mateus':'PIN do Gustavo';
   document.getElementById('pin-input').value='';
   document.getElementById('login-error').textContent='';
   document.getElementById('pin-input').focus();
@@ -349,17 +354,17 @@ window.logout = () => {
 async function preCarregar() {
   try {
     const p = await dbGet('pins');
-    if(p && p.cfo && p.ceo) PINS = {...p};
+    if(p && p.cfo && p.ceo) PINS = { cfo: p.cfo, coo: p.coo || PINS.coo, ceo: p.ceo };
   } catch(e) {}
 }
 
 async function iniciarApp() {
   document.getElementById('login-screen').style.display='none';
   document.getElementById('app').style.display='block';
-  document.getElementById('header-user').textContent = perfil==='cfo'?'Benedito (CFO)':'Gustavo (CEO)';
+  document.getElementById('header-user').textContent = perfil==='cfo'?'Benedito (CFO)':perfil==='coo'?'Mateus (COO)':'Gustavo (CEO)';
   await carregarConfig();
   montarTabs();
-  ativarTab(perfil==='cfo'?'semanal':'dashboard');
+  ativarTab(perfil==='cfo'?'semanal':perfil==='coo'?'coo-semanal':'dashboard');
 }
 
 document.addEventListener('DOMContentLoaded', preCarregar);
@@ -368,6 +373,8 @@ document.addEventListener('DOMContentLoaded', preCarregar);
 function montarTabs() {
   const tabs = perfil==='cfo'
     ? [{id:'semanal',l:'📅 Semanal'},{id:'mensal',l:'📆 Mensal'},{id:'mensagens',l:'📣 Mensagens'}]
+    : perfil==='coo'
+    ? [{id:'coo-semanal',l:'📅 Semanal'},{id:'coo-dashboard',l:'📊 Dashboard'}]
     : [{id:'dashboard',l:'📊 Dashboard'},{id:'historico',l:'🗂️ Histórico'},{id:'config',l:'⚙️ Config'}];
   document.getElementById('tabs').innerHTML = tabs.map(t=>`<div class="tab" id="tab-${t.id}" onclick="ativarTab('${t.id}')">${t.l}</div>`).join('');
 }
@@ -382,6 +389,8 @@ window.ativarTab = id => {
   if(id==='historico')renderHistorico();
   if(id==='config')renderConfig();
   if(id==='mensagens')renderMensagens();
+  if(id==='coo-semanal')renderCooSemanal();
+  if(id==='coo-dashboard')renderCooDashboard();
 };
 
 // ── DASHBOARD (CEO) ──────────────────────────────────────
@@ -1048,6 +1057,107 @@ window.copiarMsg = (id, btn) => {
   });
 };
 
+// ── COO SEMANAL ──────────────────────────────────────────
+function renderCooSemanal() {
+  const semana = semanaAtual();
+  const el = document.getElementById('page-coo-semanal');
+  el.innerHTML = `
+    <h2 style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--gold);letter-spacing:2px;margin-bottom:4px">📅 Report Semanal</h2>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:20px">Semana: <strong style="color:var(--text)">${semana}</strong></p>
+
+    <div class="card" style="margin-bottom:12px">
+      <div class="card-title">⚠️ Demanda Reprimida</div>
+      <p style="font-size:12px;color:var(--muted);margin:8px 0 10px">Alunos que ficaram sem treinar por falta de vaga</p>
+      <input id="coo-demanda" type="number" min="0" placeholder="0"
+        style="width:100%;background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-size:18px;text-align:center;outline:none"/>
+    </div>
+
+    <div class="card" style="margin-bottom:12px">
+      <div class="card-title">✅ Check-ins na Semana</div>
+      <p style="font-size:12px;color:var(--muted);margin:8px 0 10px">Meta mensal: <strong style="color:var(--gold)">2.800 check-ins</strong></p>
+      <input id="coo-checkins" type="number" min="0" placeholder="0"
+        style="width:100%;background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-size:18px;text-align:center;outline:none"/>
+    </div>
+
+    <div class="card" style="margin-bottom:20px">
+      <div class="card-title">❌ Cancelamentos da Semana</div>
+      <p style="font-size:12px;color:var(--muted);margin:8px 0 10px">Lista com nome e motivo de cada cancelamento</p>
+      <textarea id="coo-cancelamentos" rows="5" placeholder="Ex: João Silva — viagem / Maria Costa — financeiro / ..."
+        style="width:100%;background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-size:13px;outline:none;resize:vertical;line-height:1.6"></textarea>
+    </div>
+
+    <button onclick="salvarCooSemanal()" class="btn-primary" style="width:100%">💾 SALVAR REPORT</button>
+    <div id="coo-save-msg" class="save-msg"></div>
+  `;
+
+  // pré-carregar se já existir
+  dbGet(`coo-semanas/${mesAtual()}`).then(data => {
+    if(!data) return;
+    if(data.demanda !== undefined) document.getElementById('coo-demanda').value = data.demanda;
+    if(data.checkins !== undefined) document.getElementById('coo-checkins').value = data.checkins;
+    if(data.cancelamentos) document.getElementById('coo-cancelamentos').value = data.cancelamentos;
+  });
+}
+
+window.salvarCooSemanal = async () => {
+  const msg = document.getElementById('coo-save-msg');
+  const data = {
+    semana: semanaAtual(),
+    demanda: Number(document.getElementById('coo-demanda').value || 0),
+    checkins: Number(document.getElementById('coo-checkins').value || 0),
+    cancelamentos: document.getElementById('coo-cancelamentos').value.trim(),
+    ts: Date.now()
+  };
+  try {
+    await dbSet(`coo-semanas/${mesAtual()}`, data);
+    msg.style.color = 'var(--green)'; msg.textContent = '✓ Report salvo!';
+    setTimeout(() => { msg.textContent = ''; }, 3000);
+  } catch(e) {
+    msg.style.color = 'var(--red)'; msg.textContent = 'Erro ao salvar.';
+  }
+};
+
+// ── COO DASHBOARD (CEO vê no futuro — por ora o COO vê seus próprios dados) ──
+async function renderCooDashboard() {
+  const el = document.getElementById('page-coo-dashboard');
+  el.innerHTML = `<div class="loading"><div class="spinner"></div>Carregando...</div>`;
+  const data = await dbGet(`coo-semanas/${mesAtual()}`);
+  if(!data) {
+    el.innerHTML = `<div style="text-align:center;padding:40px;color:var(--muted)">Nenhum report enviado ainda este mês.</div>`;
+    return;
+  }
+  const metaCheckins = 2800;
+  const pctCheckins = Math.round((data.checkins / metaCheckins) * 100);
+  const corCheckins = pctCheckins >= 100 ? 'verde' : pctCheckins >= 70 ? 'amarelo' : 'vermelho';
+  const cancelList = data.cancelamentos ? data.cancelamentos.split('\n').filter(l=>l.trim()) : [];
+
+  el.innerHTML = `
+    <h2 style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--gold);letter-spacing:2px;margin-bottom:4px">📊 Dashboard COO</h2>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:20px">Semana: <strong style="color:var(--text)">${data.semana || '—'}</strong></p>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+      <div class="metric-card">
+        <div class="label">Demanda Reprimida</div>
+        <div class="value" style="color:${data.demanda > 0 ? 'var(--red)' : 'var(--green)'}">${data.demanda}</div>
+        <div class="sub">alunos sem treinar</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">Check-ins</div>
+        <div class="value">${data.checkins.toLocaleString('pt-BR')}</div>
+        <div class="sub">${tagCor(pctCheckins+'% da meta', corCheckins)}</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">❌ Cancelamentos (${cancelList.length})</div>
+      ${cancelList.length === 0
+        ? '<p style="color:var(--muted);font-size:13px;margin-top:8px">Nenhum cancelamento registrado.</p>'
+        : `<ul style="list-style:none;margin-top:10px">${cancelList.map(c=>`<li style="padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;color:var(--text)">${c}</li>`).join('')}</ul>`
+      }
+    </div>
+  `;
+}
+
 // ── CONFIG (CEO) ─────────────────────────────────────────
 function renderConfig() {
   const el = document.getElementById('page-config');
@@ -1060,6 +1170,11 @@ function renderConfig() {
         <div>
           <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:6px">PIN do CFO (Benedito)</label>
           <input id="cfg-pin-cfo" type="password" value="${PINS.cfo}" maxlength="8"
+            style="background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-size:16px;letter-spacing:4px;width:100%;outline:none"/>
+        </div>
+        <div>
+          <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:6px">PIN do COO (Mateus)</label>
+          <input id="cfg-pin-coo" type="password" value="${PINS.coo}" maxlength="8"
             style="background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-size:16px;letter-spacing:4px;width:100%;outline:none"/>
         </div>
         <div>
@@ -1076,13 +1191,15 @@ function renderConfig() {
 
 window.salvarPins = async () => {
   const cfo = document.getElementById('cfg-pin-cfo').value.trim();
+  const coo = document.getElementById('cfg-pin-coo').value.trim();
   const ceo = document.getElementById('cfg-pin-ceo').value.trim();
   const msg = document.getElementById('cfg-msg');
-  if(cfo.length < 4 || ceo.length < 4){ msg.style.color='var(--red)'; msg.textContent='PINs precisam ter pelo menos 4 dígitos.'; return; }
-  if(cfo === ceo){ msg.style.color='var(--red)'; msg.textContent='PINs não podem ser iguais.'; return; }
+  if(cfo.length < 4 || coo.length < 4 || ceo.length < 4){ msg.style.color='var(--red)'; msg.textContent='PINs precisam ter pelo menos 4 dígitos.'; return; }
+  const pins = [cfo, coo, ceo];
+  if(new Set(pins).size !== pins.length){ msg.style.color='var(--red)'; msg.textContent='PINs não podem ser iguais.'; return; }
   try {
-    await dbSet('pins', { cfo, ceo });
-    PINS.cfo = cfo; PINS.ceo = ceo;
+    await dbSet('pins', { cfo, coo, ceo });
+    PINS.cfo = cfo; PINS.coo = coo; PINS.ceo = ceo;
     msg.style.color='var(--green)'; msg.textContent='✅ PINs atualizados!';
     setTimeout(()=>{ msg.textContent=''; }, 3000);
   } catch(e) {
